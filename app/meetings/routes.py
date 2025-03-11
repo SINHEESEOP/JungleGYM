@@ -17,7 +17,6 @@ from datetime import datetime
 
 from app import mongo
 
-
 @meetings_bp.route("/completion", methods=["POST"])
 @jwt_required(locations=["cookies"])
 def completion():
@@ -67,7 +66,6 @@ def completion():
 
     return jsonify(({"result": "success"}))
 
-
 @meetings_bp.route("/", methods=["GET", "POST"])
 @jwt_required(locations=["cookies"])
 def list_meetings():
@@ -109,6 +107,13 @@ def list_meetings():
             Meeting.update(meeting_data)
         else:
             # 생성 로직
+            if not title or not category or not date or not time or not max_people or not location or not notice:
+                return jsonify({"result": "failed", "msg": '데이터를 입력해주세요'})
+            if not (datetime.strptime(date + ' ' + time, '%Y-%m-%d %H:%M') > datetime.now()):
+                return jsonify({"result": "failed", "msg": "현재 시각 이후의 시간을 골라주세요."})
+            if int(max_people) < 1 or 30 < int(max_people):
+                return jsonify({"result": "failed", "msg": "인원은 1명 이상 30명 이하로 작성해주세요."})
+            
             new_meeting = Meeting(
                 title=title,
                 category=category,
@@ -128,6 +133,7 @@ def list_meetings():
         return jsonify({"result": "success"})
 
     meetings = Meeting.get_all_meetings()
+    print(meetings)
 
     # 오름차순 정렬을 위한 함수 정의
     def parse_meeting_datetime(meeting):
@@ -145,6 +151,7 @@ def list_meetings():
     participant_meetings = []
     except_meetings = []
     for i in range(0, len(meetings)):
+        meetings[i]["date"] = (str(meetings[i]["date"].year) + '년 ' + str(meetings[i]["date"].month) + '월 ' + str(meetings[i]["date"].day) + '일')
         meetings[i]["participant_cnt"] = str(len(meetings[i]["participant_ids"]))
         meetings[i]['is_owner'] = meetings[i]['leader_id'] == current_user
         meetings[i]['is_participant'] = any(el == current_user for el in meetings[i]['participant_ids'])

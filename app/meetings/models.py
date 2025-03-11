@@ -1,5 +1,6 @@
 from app import mongo
-from datetime import datetime
+from datetime import datetime, timezone, timedelta, date
+from pytz import timezone
 from bson.objectid import ObjectId
 import logging
 
@@ -38,13 +39,14 @@ class Meeting:
         self.longitude = longitude
         self.leader_id = leader_id  # ID of the user who created the meeting
         self.participant_ids = [leader_id]  # List of user IDs who have signed up
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone('Asia/Seoul'))
 
     def save(self):
+        print(self.date, '%Y-%m-%d')
         meeting_data = {
             "title": self.title,
             "category": self.category,
-            "date": self.date,
+            "date": datetime.strptime(self.date, '%Y-%m-%d'),
             "time": self.time,
             "end_time": self.end_time,
             "max_people": self.max_people,
@@ -62,7 +64,7 @@ class Meeting:
 
     @staticmethod
     def get_all_meetings():
-        return list(mongo.db.meetings.find())
+        return list(mongo.db.meetings.find({'date': { '$gte': datetime(date.today().year, date.today().month, date.today().day - 1) }}))
 
     @staticmethod
     def get_meeting_by_id(meeting_id):
